@@ -1,15 +1,20 @@
 const express = require('express');
-const path = require('path');
-const Sequelize = require('sequelize');
+const passport = require('passport');
+const morgan = require('morgan');
+const app = express();
 const groupRouter = require('./routes/group');
 const runRouter = require('./routes/run');
 const userRouter = require('./routes/user');
 const db = require('./config/database');
 
-const app = express();
+require('./config/passport')(passport);
+app.use(passport.initialize());
+
+app.use(morgan('dev'));
 
 app.use('/group', groupRouter);
 app.use('/run', runRouter);
+// app.use('/auth/user', passport.authenticate('jwt', {session: false}), userAuthRouter);
 app.use('/user', userRouter);
 
 const PORT = process.env.PORT || 5000;
@@ -20,11 +25,8 @@ app.listen(PORT, () => {
 
 db.authenticate()
     .then(() => {
-        console.log('Connection has been established successfully.');
+        console.log('Connection to database has been established successfully.');
     })
     .catch(err => {
         console.error('Unable to connect to the database:', err);
     });
-
-app.get('/', (req, res) => res.send('INDEX'));
-
