@@ -1,27 +1,224 @@
 const express = require('express');
-const router = express.Router();
 const bodyParser = require('body-parser');
+const router = express.Router();
 const User = require('../models/user');
-const app = express();
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const config = require('../config/main');
+const passport = require('passport');
+const jsonParser = bodyParser.json();
 
-app.use(bodyParser.json);
-
+// Get all users
 router.get('/', (req, res) => {
-    User.findAll()
-        .then(appUser => {
-            return res.status(200).json(appUser);
-        })
-        .catch(err => console.log(err));
+    User.findAll({
+        attributes: [
+            'username',
+            'email',
+            'name',
+            'isAdmin',
+            'currentWeight',
+            'weightGoal',
+            'dailyStepGoal',
+            'groups'
+        ]
+    })
+    .then(allUsers => {
+        return res.status(200).json(allUsers);
+    })
+    .catch(err => console.log(err));
 });
 
+// Get single user
 router.get('/:id', (req, res) => {
     User.findOne({
-        where: {username: req.params.id}
+        where: {username: req.params.id},
+        attributes: ['username',
+                     'email',
+                     'name',
+                     'isAdmin',
+                     'currentWeight',
+                     'weightGoal',
+                     'dailyStepGoal',
+                     'groups' ]
     })
     .then(appUser => {
         return res.status(200).json(appUser);
     })
     .catch(err => console.log(err))
 });
+
+// Login user
+/*
+    Takes JSON body of:
+     usernameOrEmail: string
+     password: string
+
+     ========================
+     Returns:
+     success: boolean
+     token: string
+ */
+router.post('/login', jsonParser, (req, res) => {
+    User.findOne( {
+       where: {
+           $or: [
+               { username: { $eq: req.body.usernameOrEmail }},
+               { email: { $eq: req.body.usernameOrEmail }}
+           ]
+       }
+    }).then(user => {
+       if(!user) {
+           res.status(404).json({
+               message: 'A user with the specified username or email does not exist.'
+           })
+       }
+       console.log(user.password);
+
+       let isAuthorised = bcrypt.compareSync(req.body.password, user.password);
+
+       console.log(isAuthorised);
+       if (isAuthorised) {
+            let token = jwt.sign({ username: user.username, email: user.email, password: user.password }, config.secretKey, {
+                expiresIn: 1814400
+            });
+            res.status(200).json({
+                success: true,
+                token: 'Bearer ' + token
+            })
+       } else {
+            return res.status(403).json({
+                message: 'Password is incorrect.'
+            })
+       }
+    }).catch(error => {
+       res.status(500).json({
+           message: 'Something went wrong.',
+           error: error
+       })
+    })
+});
+
+// Create User
+/* Takes json body of minimum:
+    username: string,
+    email: string,
+    name: string,
+    password: string,
+    isAdmin: boolean
+
+    optional fields:
+    currentWeight: int,
+    weightGoal: int,
+    dailyStepGoal: int,
+    groups: jsonB
+
+   ========================
+   Returns User json object
+ */
+router.post('/', jsonParser, (req, res) => {
+    const data = req.body;
+
+    if (!data.username ||
+        !data.email ||
+        !data.password ||
+        !data.name ||
+        !data.isAdmin) {
+
+        return res.status(404).json({
+            message: 'Incomplete data. Please ensure all required fields are filled:' +
+                'username (string), email (string), name (string), password (string) and isAdmin (boolean).'
+        })
+    } else {
+
+        let weightGoal = data.weightGoal || 0;
+        let dailyStepGoal = data.dailyStepGoal || 0;
+        let currentWeight = data.currentWeight || 0;
+
+        User.findOrCreate({
+            where: {
+                $or: [
+                    { username: { $eq: data.username }},
+                    { email: { $eq: data.email }}
+                ]},
+            defaults: {
+                username: data.username,
+                email: data.email,
+                name: data.name,
+                password: hashPassword(data.password),
+                isAdmin: data.isAdmin,
+                currentWeight: currentWeight,
+                weightGoal: weightGoal,
+                dailyStepGoal: dailyStepGoal,
+                groups: []
+            }
+        }).then(result => {
+            let user = result[0],
+                created = result[1];
+
+            if (!created) {
+                return res.status(400).json({
+                    message: 'Username or email already associated with another account.',
+                })
+            }
+            return res.status(200).json(user);
+        }).catch(error => {
+            return res.status(500).json({
+                message: 'An unknown error occured',
+                error: error
+            })
+        })
+    }
+});
+
+// Update User
+/* Takes json body of:
+    updatedType: string
+        options =
+            username: string,
+            email: string,
+            name: string,
+            password: string,
+            isAdmin: boolean,
+            currentWeight: int,
+            weightGoal: int,
+            dailyStepGoal: int,
+            groups: JSONB
+    newValue: string, int, boolean or JSONB depending on type
+    ============
+    REQUIRES Authorization header with bearer token
+    ============
+    Returns: User json object
+ */
+router.put('/:id', jsonParser, function(res, req, next) {
+    passport.authenticate('jwt', { session: false }, function(err, user) {
+        if (err) {
+            console.log('I am erroring! YAY');
+            return next(err);
+        }
+        if (!user) {
+            return res.status(404).json({
+                message: 'User was not found'
+            })
+        }
+        // let updatedType = req.body.updatedType;
+        // let newValue = req.body.newValue;
+        // User.update({
+        //     [updatedType]: newValue,
+        //     returning : true,
+        //     where: {username: req.params.id}
+        // }).then(([rowsUpdate, [updatedUser]]) => {
+        //     res.status(200).json(updatedUser)
+        // }).catch(error => {
+        //     return res.status(500).json(error);
+        // })
+    }) (req, res, next);
+});
+
+function hashPassword(password) {
+    let salt = bcrypt.genSaltSync(10);
+    let hash = bcrypt.hashSync(password, salt);
+    console.log("HASH =====" + hash);
+    return hash
+}
 
 module.exports = router;
