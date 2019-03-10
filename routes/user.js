@@ -1,11 +1,11 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const router = express.Router();
+const passport = require('passport');
 const User = require('../models/user');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const config = require('../config/main');
-const passport = require('passport');
 const jsonParser = bodyParser.json();
 
 // Get all users
@@ -174,10 +174,7 @@ router.post('/', jsonParser, (req, res) => {
 /* Takes json body of:
     updatedType: string
         options =
-            username: string,
-            email: string,
             name: string,
-            password: string,
             isAdmin: boolean,
             currentWeight: int,
             weightGoal: int,
@@ -189,29 +186,39 @@ router.post('/', jsonParser, (req, res) => {
     ============
     Returns: User json object
  */
-router.put('/:id', jsonParser, function(res, req, next) {
-    passport.authenticate('jwt', { session: false }, function(err, user) {
-        if (err) {
-            console.log('I am erroring! YAY');
-            return next(err);
-        }
-        if (!user) {
-            return res.status(404).json({
-                message: 'User was not found'
-            })
-        }
-        // let updatedType = req.body.updatedType;
-        // let newValue = req.body.newValue;
-        // User.update({
-        //     [updatedType]: newValue,
-        //     returning : true,
-        //     where: {username: req.params.id}
-        // }).then(([rowsUpdate, [updatedUser]]) => {
-        //     res.status(200).json(updatedUser)
-        // }).catch(error => {
-        //     return res.status(500).json(error);
-        // })
-    }) (req, res, next);
+router.put('/:id', jsonParser, passport.authenticate('jwt', { session: false }), (req, res) => {
+    let data = req.body;
+    if (!data.updatedType ||
+        !data.newValue) {
+        return res.status(204).json({
+            message: 'Body must contain updatedType and newValue key values.' +
+                'Accepted types: currentWeight (int), weightGoal (int), ' +
+                'dailyStepGoal (int), groups (json), name (string), isAdmin (boolean)'
+        })
+    }
+
+    let updatedType = data.updatedType;
+
+    if (updatedType === 'username' ||
+        updatedType === 'email' ||
+        updatedType === 'password') {
+        return res.status(400).json({
+            message: 'Username cannot be changed. ' +
+                'To change your email or password, call the relevant endpoints'
+        })
+    }
+
+    let values = {[updatedType] : data.newValue};
+    let selector = {where: { username: req.params.id }};
+
+    User.update(values, selector)
+    .then(updatedUser => {
+        res.status(200).json(updatedUser)
+    }).catch(error => {
+        return res.status(500).json({
+            message: 'There was an error when updating this user.'
+        });
+    })
 });
 
 function hashPassword(password) {
