@@ -1,32 +1,32 @@
 const express = require('express');
 const passport = require('passport');
 const morgan = require('morgan');
+const cors = require('cors');
 const app = express();
+
+const db = require('./config/database');
+
 const groupRouter = require('./routes/group');
 const runRouter = require('./routes/run');
 const userRouter = require('./routes/user');
-const db = require('./config/database');
 
 require('./config/passport')(passport);
 app.use(passport.initialize());
-
 app.use(morgan('dev'));
 
-app.use('/group', groupRouter);
-app.use('/run', runRouter);
-// app.use('/auth/user', passport.authenticate('jwt', {session: false}), userAuthRouter);
+app.use('/group', passport.authenticate('jwt', { session: false }), groupRouter);
+app.use('/run', passport.authenticate('jwt', { session: false }), runRouter);
 app.use('/user', userRouter);
+
+app.use(cors);
 
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
     console.log(`App listening on port ${PORT}`)
-});
-
-db.authenticate()
-    .then(() => {
-        console.log('Connection to database has been established successfully.');
+    db.sync({force: false}).then(() => {
+        console.log('Database is synced')
+    }).catch(err => {
+        console.log(err)
     })
-    .catch(err => {
-        console.error('Unable to connect to the database:', err);
-    });
+});

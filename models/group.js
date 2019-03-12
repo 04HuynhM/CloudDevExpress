@@ -2,7 +2,6 @@ const Sequelize = require('sequelize');
 const db = require('../config/database');
 
 const Group = db.define('group', {
-    freezeTableName: true,
     group_id: {
         type: Sequelize.STRING,
         unique: true,
@@ -15,9 +14,5 @@ const Group = db.define('group', {
     freezeTableName: true,
     timestamps: false,
 });
-
-Group.associate = models => {
-    Group.belongsTo(models.User)
-};
 
 module.exports = Group;

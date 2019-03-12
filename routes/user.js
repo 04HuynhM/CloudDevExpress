@@ -19,7 +19,7 @@ router.get('/', (req, res) => {
             'currentWeight',
             'weightGoal',
             'dailyStepGoal',
-            'groups'
+            'joinedGroups'
         ]
     })
     .then(allUsers => {
@@ -39,7 +39,7 @@ router.get('/:id', (req, res) => {
                      'currentWeight',
                      'weightGoal',
                      'dailyStepGoal',
-                     'groups' ]
+                     'joinedGroups' ]
     })
     .then(appUser => {
         return res.status(200).json(appUser);
@@ -149,7 +149,7 @@ router.post('/', jsonParser, (req, res) => {
                 currentWeight: currentWeight,
                 weightGoal: weightGoal,
                 dailyStepGoal: dailyStepGoal,
-                groups: []
+                joinedGroups: []
             }
         }).then(result => {
             let user = result[0],
@@ -193,7 +193,7 @@ router.put('/:id', jsonParser, passport.authenticate('jwt', { session: false }),
         return res.status(204).json({
             message: 'Body must contain updatedType and newValue key values.' +
                 'Accepted types: currentWeight (int), weightGoal (int), ' +
-                'dailyStepGoal (int), groups (json), name (string), isAdmin (boolean)'
+                'dailyStepGoal (int), joinedGroups (json), name (string), isAdmin (boolean)'
         })
     }
 

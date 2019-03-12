@@ -8,7 +8,6 @@ module.exports = function(passport) {
     jwtOptions.jwtFromRequest = ExtractJwt.fromAuthHeaderAsBearerToken();
     jwtOptions.secretOrKey = config.secretKey;
     passport.use(new JwtStrategy(jwtOptions, function(jwt_payload, done) {
-        console.log('USER NAME IS HERE ==============================' + jwt_payload.username);
         User.findOne({
             where: {username: jwt_payload.username}
         }).then(appUser => {
