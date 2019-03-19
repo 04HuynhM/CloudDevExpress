@@ -19,7 +19,8 @@ router.get('/', (req, res) => {
             'currentWeight',
             'weightGoal',
             'dailyStepGoal',
-            'joinedGroups'
+            'joinedGroups',
+            'groupInvitations'
         ]
     })
     .then(allUsers => {
@@ -149,7 +150,8 @@ router.post('/', jsonParser, (req, res) => {
                 currentWeight: currentWeight,
                 weightGoal: weightGoal,
                 dailyStepGoal: dailyStepGoal,
-                joinedGroups: []
+                joinedGroups: [],
+                groupInvitations: [],
             }
         }).then(result => {
             let user = result[0],

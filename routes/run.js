@@ -28,11 +28,15 @@ router.post('/', jsonParser, (req, res) => {
                 username: data.username
             }
         }).then(user => {
+            if(!user) {
+                return res.status(404).json({
+                    message: 'User was not found'
+                })
+            }
             Run.create({
                 startTime: data.startTime,
                 locations: data.locations,
             }).then(result => {
-                console.log('Did this work?');
                 result.setUser(user.username).then(result => {
                     return res.status(200).json(result);
                 });
