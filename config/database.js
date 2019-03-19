@@ -16,4 +16,6 @@ const Run = require('../models/run');
 const Group = require('../models/group');
 
 User.hasMany(Run, {foreignKey: 'user'});
+Run.belongsTo(User, {foreignKey: 'user'});
 User.hasMany(Group, {foreignKey: 'admin'});
+Group.belongsTo(User, {foreignKey: 'admin'});

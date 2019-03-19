@@ -28,17 +28,54 @@ router.post('/', jsonParser, (req, res) => {
     }).then(user => {
         if (user) {
             Group.create({
-                    groupName: groupName
+                    groupName: groupName,
+                    members: [ user.username ],
                 }
-            ).then(result => {
-                console.log('Did this work?');
-                result.setAdmin(data.username).then(result => {
-                    return res.status(200).json(result);
-                });
+            ).then(createdGroup => {
+                user.addGroup(createdGroup).then(returnedUser => {
+                    Group.max('group_id', {
+                        where: {
+                            admin: returnedUser.username,
+                        }
+                    }).then(groupId => {
+                        Group.findOne({
+                            where: {
+                                group_id: groupId
+                            }
+                        }).then(createdGroup => {
+                            return res.status(200).json(createdGroup)
+                        })
+                    }).catch(error => {
+                        Group.max('group_id', {
+                            where: {
+                                admin: returnedUser.username,
+                            }
+                        }).then(groupId => {
+                            deleteErroneousGroup(groupId);
+                            return res.status(500).json({
+                                message: 'An unknown error occurred, the group was not created',
+                                error: error
+                            })
+                        });
+                        return res.status(500).json({
+                            message: 'Something went wrong and an erroneous group was created'
+                        })
+                    });
+                })
             }).catch(error => {
+                Group.max('group_id', {
+                    where: {
+                        admin: user.username,
+                    }
+                }).then(groupId => {
+                    deleteErroneousGroup(groupId);
+                    return res.status(500).json({
+                        message: 'An unknown error occurred, the group was not created',
+                        error: error
+                    })
+                });
                 return res.status(500).json({
-                    message: 'An unknown error occurred',
-                    error: error
+                    message: 'Something went wrong and an erroneous group was created'
                 })
             })
         } else {
@@ -62,7 +99,7 @@ Takes JSON body of:
 
     Returns status 200
  */
-router.put('/:group_id/invite', jsonParser, (res, req) => {
+router.put('/:group_id/invite', jsonParser, (req, res) => {
     let data = req.body;
     if (!data.invitedUser) {
         return res.status(400).json({
@@ -84,32 +121,40 @@ router.put('/:group_id/invite', jsonParser, (res, req) => {
             where: {
                 username: invited
             }
-        }).then(user => {
-            if (!user) {
+        }).then(invitedUser => {
+            if (!invitedUser) {
                 return res.status(404).json({
                     message: 'Could not find user'
                 })
             }
-            let groupInvites = user.groupInvitations;
-            let newInvited = groupInvites.push(group.group_id);
-            let values = {groupInvitations: newInvited};
+            let groupInvites = invitedUser.groupInvitations;
+            if (groupInvites === []) {
+                groupInvites = [groupInvites.push(group.group_id)];
+            } else if (groupInvites.includes(group.group_id)) {
+                return res.status(400).json({
+                    message: 'User is already invited to group'
+                })
+            } else {
+                groupInvites.push(group.group_id);
+            }
+            let values = {groupInvitations: groupInvites};
             User.update(values, {
-                returning: true,
                 where: {
-                    group_id: group.group_id
+                    username: invitedUser.username
                 }
-            }).then(updatedGroup => {
-                res.status(200).json(updatedGroup)
+            }).then(() => {
+                res.status(200).json({
+                    message: 'Invitation sent successfully'
+                })
             }).catch(error => {
                 return res.status(500).json({
-                    message: 'There was a database error when updating this run.',
+                    message: 'There was a database error when sending the invitation.',
                     error: error
                 });
             })
         })
     })
 });
-
 
 //Accept Group Invitation
 /*
@@ -118,7 +163,7 @@ Takes JSON body of:
 
     Returns status 200
  */
-router.put('/:group_id/accept', jsonParser, (res, req) => {
+router.put('/:group_id/accept', jsonParser, (req, res) => {
     let data = req.body;
     Group.findOne({
         where: {
@@ -146,44 +191,55 @@ router.put('/:group_id/accept', jsonParser, (res, req) => {
                     message: 'Invitation does not exist'
                 })
             }
-            let newGroupMembers = group.members.push(user.username);
-
-            let values = {members: newGroupMembers};
-            let selector = {returning: true, where: {group_id: group.group_id}};
+            let currentMembers = group.members;
+            if (currentMembers === []) {
+                currentMembers = [currentMembers.push(user.username)];
+            } else if (currentMembers.includes(user.username)) {
+                return res.status(400).json({
+                    message: 'User is already a member of this group.'
+                })
+            } else {
+                currentMembers.push(user.username);
+            }
+            let values = {members: currentMembers};
+            let selector = {where: {group_id: group.group_id}};
 
             Group.update(values, selector)
-            .then(updatedGroup => {
-                if (updatedGroup === 1) {
-                    let newInvitations = user.groupInvitations;
-                    for (let i = 0; i < newInvitations.length; i++) {
-                        if (newInvitations[i] === group.group_id) {
-                            newInvitations.splice(i, 1)
+            .then(updatedRows => {
+                if (updatedRows==1) {
+                    let userInvitations = user.groupInvitations;
+                    for (var i = 0; i < userInvitations.length; i++) {
+                        if (userInvitations[i] === group.group_id) {
+                            userInvitations.splice(i, 1)
                         }
                     }
-                    let values = {groupInvitations: newInvitations};
+                    let values = {groupInvitations: userInvitations};
                     let selector = {where: {username: user.username}};
                     User.update(values, selector)
-                        .then(updatedUser => {
-                            if (updatedUser === 1) {
-                                res.status(200).json(updatedUser)
-                            } else {
-                                return res.status(500).json({
-                                    message: 'Unknown error, user invitations list was not updated'
-                                })
-                            }
-                        }).catch(error => {
+                    .then(updatedUser => {
+                        if (updatedUser == 1) {
+                            res.status(200).json({
+                                message: 'Accepted invitation successfully'
+                            })
+                        } else {
+                            return res.status(500).json({
+                                message: 'Unknown error, user invitations list was not updated'
+                            })
+                        }
+                    }).catch(error => {
                         return res.status(500).json({
                             message: 'There was a database error when updating the users invitations.',
                             error: error
                         });
                     })
-                        .catch(error => {
-                            return res.status(500).json({
-                                message: 'There was a database error when updating this groups members.',
-                                error: error
-                            });
+                    .catch(error => {
+                        return res.status(500).json({
+                            message: 'There was a database error when updating this groups members.',
+                            error: error
                         });
-                } else {
+                    });
+                }
+                else {
                     return res.status(500).json({
                         message: 'Unknown error, group was not updated'
                     })
@@ -267,7 +323,7 @@ router.get('/:username', (req, res) => {
     })
 });
 
-//Get run by run_id
+//Get group by group_id
 router.get('/:group_id', (req, res) => {
     Group.findOne({
         where: {
@@ -283,6 +339,16 @@ router.get('/:group_id', (req, res) => {
         }
     })
 });
+
+function deleteErroneousGroup(groupId) {
+    Group.destroy({
+        where: {
+            group_id: groupId
+        }
+    }).then(result => {
+        return result === 1;
+    })
+}
 
 module.exports = router;
 
