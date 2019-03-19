@@ -29,7 +29,7 @@ router.post('/', jsonParser, (req, res) => {
         if (user) {
             Group.create({
                     groupName: groupName,
-                    members: [],
+                    members: [ user.username ],
                 }
             ).then(createdGroup => {
                 user.addGroup(createdGroup).then(returnedUser => {
