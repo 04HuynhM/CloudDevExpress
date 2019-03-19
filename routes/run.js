@@ -18,7 +18,7 @@ Takes Json body of:
  */
 router.post('/', jsonParser, (req, res) => {
     const data = req.body;
-    if (!data.startTime) {
+    if (!data.startTime || !data.username) {
         return res.status(402).json({
             message: 'Incomplete data. Start time and username are required.'
         })
@@ -28,7 +28,6 @@ router.post('/', jsonParser, (req, res) => {
                 username: data.username
             }
         }).then(user => {
-            console.log(user);
             Run.create({
                 startTime: data.startTime,
                 locations: data.locations,

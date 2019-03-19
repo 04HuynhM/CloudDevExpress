@@ -31,6 +31,9 @@ const User = db.define('User', {
     },
     joinedGroups: {
         type: Sequelize.JSONB,
+    },
+    groupInvitations: {
+        type: Sequelize.JSONB,
     }
 }, {
     freezeTableName: true,
