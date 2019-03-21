@@ -131,7 +131,8 @@ router.post('/', jsonParser, (req, res) => {
 
         return res.status(404).json({
             message: 'Incomplete data. Please ensure all required fields are filled:' +
-                'username (string), email (string), name (string), password (string) and isAdmin (boolean).'
+                'username (string), email (string), name (string), password (string) and isAdmin (boolean).',
+            receivedData: data
         })
     } else {
 

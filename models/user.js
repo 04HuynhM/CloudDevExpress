@@ -30,10 +30,10 @@ const User = db.define('User', {
         type: Sequelize.INTEGER,
     },
     joinedGroups: {
-        type: Sequelize.JSONB,
+        type: Sequelize.ARRAY(Sequelize.INTEGER),
     },
     groupInvitations: {
-        type: Sequelize.JSONB,
+        type: Sequelize.ARRAY(Sequelize.INTEGER),
     },
     profilePicture: {
         type: Sequelize.STRING,

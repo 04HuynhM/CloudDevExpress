@@ -12,7 +12,7 @@ const Group = db.define('Group', {
         type: Sequelize.STRING,
     },
     members: {
-        type:Sequelize.JSONB,
+        type:Sequelize.ARRAY(Sequelize.STRING),
     }
 }, {
     freezeTableName: true,
