@@ -127,7 +127,7 @@ router.post('/', jsonParser, (req, res) => {
         !data.email ||
         !data.password ||
         !data.name ||
-        !data.isAdmin) {
+        !data.hasOwnProperty('isAdmin')) {
 
         return res.status(404).json({
             message: 'Incomplete data. Please ensure all required fields are filled:' +
