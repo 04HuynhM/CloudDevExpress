@@ -7,6 +7,8 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const config = require('../config/main');
 const jsonParser = bodyParser.json();
+const upload = require('../config/cloudStorage');
+const singleUpload = upload.single('image');
 
 // Get all users
 router.get('/', (req, res) => {
@@ -20,7 +22,8 @@ router.get('/', (req, res) => {
             'weightGoal',
             'dailyStepGoal',
             'joinedGroups',
-            'groupInvitations'
+            'groupInvitations',
+            'profilePicture'
         ]
     })
     .then(allUsers => {
@@ -40,7 +43,8 @@ router.get('/:id', (req, res) => {
                      'currentWeight',
                      'weightGoal',
                      'dailyStepGoal',
-                     'joinedGroups' ]
+                     'joinedGroups',
+                     'profilePicture']
     })
     .then(appUser => {
         return res.status(200).json(appUser);
@@ -152,6 +156,7 @@ router.post('/', jsonParser, (req, res) => {
                 dailyStepGoal: dailyStepGoal,
                 joinedGroups: [],
                 groupInvitations: [],
+                profilePicture: '',
             }
         }).then(result => {
             let user = result[0],
@@ -221,6 +226,31 @@ router.put('/:id', jsonParser, passport.authenticate('jwt', { session: false }),
             message: 'There was an error when updating this user.'
         });
     })
+});
+
+// Upload profile picture
+router.post('/:id/image-upload', passport.authenticate('jwt', { session: false }), (req, res) => {
+    singleUpload(req, res, (err => {
+        if (err) {
+            return res.status(422).json({
+                message: 'Could not upload image',
+                error: err
+            })
+        }
+        let values = {profilePicture: req.file.location};
+        let selector = {where: {username: req.params.id}};
+        User.update(values, selector).then(result => {
+            if (result == 1) {
+                return res.status(200).json({
+                    url: req.file.location
+                })
+            } else {
+                return res.status(500).json({
+                    message: 'An error occured, profile picture was not uploaded'
+                })
+            }
+        });
+    }))
 });
 
 function hashPassword(password) {
