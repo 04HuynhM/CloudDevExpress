@@ -1,12 +1,13 @@
+require('dotenv').config();
 const Sequelize = require('sequelize');
 
 module.exports = new Sequelize(
-    'clouddevdb',
-    'master',
-    'rootuser',
+    process.env.DATABASE_NAME,
+    process.env.DATABASE_USER,
+    process.env.DATABASE_PASSWORD,
     {
-        port: 5432,
-        host: 'clouddevdb.cpvkbdcnilcb.eu-west-2.rds.amazonaws.com',
+        port: process.env.DATABASE_PORT,
+        host: process.env.DATABASE_HOST,
         dialect: 'postgres',
     },
 );
