@@ -78,17 +78,14 @@ router.post('/login', jsonParser, (req, res) => {
            })
        }
        console.log(user.password);
-
        let isAuthorised = bcrypt.compareSync(req.body.password, user.password);
-
-       console.log(isAuthorised);
        if (isAuthorised) {
             let token = jwt.sign({ username: user.username, email: user.email, password: user.password }, config.secretKey, {
                 expiresIn: 1814400
             });
             res.status(200).json({
                 success: true,
-                token: 'Bearer ' + token
+                token: token
             })
        } else {
             return res.status(403).json({
