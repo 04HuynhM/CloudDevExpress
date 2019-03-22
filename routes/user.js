@@ -80,7 +80,9 @@ router.post('/login', jsonParser, (req, res) => {
        console.log(user.password);
        let isAuthorised = bcrypt.compareSync(req.body.password, user.password);
        if (isAuthorised) {
-            let token = jwt.sign({ username: user.username, email: user.email, password: user.password }, config.secretKey, {
+            let token = jwt.sign({ username: user.username,
+                                   email: user.email,
+                                   isAdmin: user.isAdmin }, config.secretKey, {
                 expiresIn: 1814400
             });
             res.status(200).json({
@@ -89,7 +91,7 @@ router.post('/login', jsonParser, (req, res) => {
             })
        } else {
             return res.status(403).json({
-                message: 'Password is incorrect.'
+                message: 'Unauthorized.'
             })
        }
     }).catch(error => {
