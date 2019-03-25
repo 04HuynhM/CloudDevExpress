@@ -253,6 +253,49 @@ router.post('/:id/image-upload', passport.authenticate('jwt', { session: false }
     }))
 });
 
+// Delete User (ADMIN ONLY)
+// Takes json body of:
+//     username : String
+//
+// REQUIRES AUTHORIZATION
+router.delete('/:id', jsonParser, passport.authenticate('jwt', { session : false }), (req, res) => {
+    let snippedAuth = req.get('Authorization').replace("Bearer ", "");
+    let decodedAuth = jwt.verify(snippedAuth, config.secretKey);
+    let isAdmin = decodedAuth.isAdmin;
+
+    if (isAdmin) {
+        User.findOne({
+            where : {
+                username: req.params.id
+            }
+        }).then(user => {
+            User.destroy({
+                where: {
+                    username : user.username
+                }
+            }).then(() => {
+                return res.status(200).json({
+                    message: 'User deleted'
+                })
+            }).catch(err => {
+                return res.status(500).json({
+                    message: 'User could not be deleted.',
+                    error: err
+                })
+            })
+        }).catch(err => {
+            return res.status(404).json({
+                message: 'User could not be found',
+                error: err
+            })
+        })
+    } else {
+        return res.status(403).json({
+            message: 'Unauthorized. User is not an admin.'
+        })
+    }
+});
+
 function hashPassword(password) {
     let salt = bcrypt.genSaltSync(10);
     let hash = bcrypt.hashSync(password, salt);
