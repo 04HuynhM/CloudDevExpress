@@ -10,11 +10,10 @@ const jsonParser = bodyParser.json();
 //Create Run
 /*
 Takes Json body of:
-    * = required
-
-    startTime* : DATE (yyyy-mm-dd hh:MM:ss)
+    startTime : DATE (yyyy-mm-dd hh:MM:ss)
     locations : JSONB
-    username* : STRING
+    username : STRING
+    timeInSeconds : INT
 
     Returns a Run json object (run_id, startTime, locations, user)
  */
@@ -38,6 +37,7 @@ router.post('/', jsonParser, (req, res) => {
             Run.create({
                 startTime: data.startTime,
                 locations: data.locations,
+                timeInSeconds: data.timeInSeconds,
             }).then(result => {
                 result.setUser(user.username).then(result => {
                     return res.status(200).json(result);

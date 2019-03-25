@@ -328,7 +328,8 @@ router.get('/', (req, res) => {
 router.get('/:username', (req, res) => {
     Group.findAll({
         where: {
-            admin: req.params.username
+            admin: req.params.username,
+            members : { $contains : req.params.username }
         }
     }).then(result => {
         if(result.length !== 0) {

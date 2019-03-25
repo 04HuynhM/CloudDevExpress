@@ -13,6 +13,9 @@ const Run = db.define('Run', {
     },
     startTime: {
         type: Sequelize.DATE,
+    },
+    timeInSeconds: {
+        type: Sequelize.INTEGER,
     }
 }, {
     freezeTableName: true,
