@@ -325,11 +325,11 @@ router.get('/', (req, res) => {
 });
 
 //Get all groups of which username is a member
-router.get('/:username', (req, res) => {
+router.get('/user/:username', (req, res) => {
     Group.findAll({
         where: {
             admin: req.params.username,
-            members : { $contains : req.params.username }
+            members : { $contains : [req.params.username] }
         }
     }).then(result => {
         if(result.length !== 0) {
