@@ -324,7 +324,7 @@ router.get('/', (req, res) => {
     })
 });
 
-//Get all groups owned by a user
+//Get all groups of which username is a member
 router.get('/:username', (req, res) => {
     Group.findAll({
         where: {
@@ -388,8 +388,13 @@ router.get('/:group_id/members', (req, res) => {
                 'profilePicture'
             ]
         }).then(users => {
-            console.log(users);
-            return res.status(200).json(users)
+            if (users) {
+                return res.status(200).json(users)
+            } else {
+                return res.status(404).json({
+                    message: 'Group could not be found',
+                })
+            }
         })
     }).catch(err => {
        return res.status(404).json({
@@ -450,7 +455,6 @@ router.delete('/:group_id/:username', jsonParser, (req, res) => {
         }
     })
 });
-
 
 //Delete a group
 router.delete('/:group_id', (req, res) => {

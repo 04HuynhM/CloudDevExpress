@@ -47,7 +47,13 @@ router.get('/:id', (req, res) => {
                      'profilePicture']
     })
     .then(appUser => {
-        return res.status(200).json(appUser);
+        if (appUser) {
+            return res.status(200).json(appUser);
+        } else {
+            return res.status(404).json({
+                message: 'User not found'
+            })
+        }
     })
     .catch(err => console.log(err))
 });
