@@ -1,6 +1,8 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 const router = express.Router();
+const config = require('../config/main');
+const jwt = require('jsonwebtoken');
 const Run = require('../models/run');
 const User = require('../models/user');
 const jsonParser = bodyParser.json();
@@ -122,6 +124,40 @@ router.get('/:run_id', (req, res) => {
     }).then(run => {
         if (run) {
             return res.status(200).json(run)
+        } else {
+            return res.status(404).json({
+                message: 'Could not find run'
+            })
+        }
+    })
+});
+
+// Delete a run (Requires authorization from a system admin or the run owner)
+router.delete('/:run_id', (req, res) => {
+    let snippedAuth = req.get('Authorization').replace("Bearer ", "");
+    let decodedAuth = jwt.verify(snippedAuth, config.secretKey);
+    let callerUsername = decodedAuth.username;
+    console.log(callerUsername);
+    let isAdmin = decodedAuth.isAdmin;
+
+    let runSelector = { where: { run_id : req.params.run_id }};
+    Run.findOne(runSelector).then(run => {
+        if (run) {
+            if (run.user !== callerUsername && !isAdmin) {
+                return res.status(403).json({
+                    message: 'Unauthorized. Only system admins and run owners can delete their runs'
+                })
+            }
+            Run.destroy(runSelector).then(() => {
+                return res.status(200).json({
+                    message: 'Run deleted successfully'
+                })
+            }).catch(err => {
+                return res.status(500).json({
+                    message: 'Something went wrong when deleting this run',
+                    error: err
+                })
+            })
         } else {
             return res.status(404).json({
                 message: 'Could not find run'
