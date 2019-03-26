@@ -349,6 +349,11 @@ router.get('/user/:username', (req, res) => {
 
 //Get group by group_id
 router.get('/:group_id', (req, res) => {
+    if (!Number.isInteger(req.params.group_id)) {
+        return res.status(400).json({
+            message: "Group ID must be an integer."
+        })
+    }
     Group.findOne({
         where: {
             group_id : req.params.group_id
