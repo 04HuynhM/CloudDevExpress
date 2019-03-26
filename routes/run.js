@@ -6,6 +6,7 @@ const jwt = require('jsonwebtoken');
 const Run = require('../models/run');
 const User = require('../models/user');
 const jsonParser = bodyParser.json();
+const cors = require('cors');
 
 //Create Run
 /*
@@ -17,7 +18,7 @@ Takes Json body of:
 
     Returns a Run json object (run_id, startTime, locations, user)
  */
-router.post('/', jsonParser, (req, res) => {
+router.post('/', cors(), jsonParser, (req, res) => {
     const data = req.body;
     if (!data.startTime || !data.username) {
         return res.status(402).json({
@@ -59,7 +60,7 @@ Takes JSON body of:
 
     Returns updated Run JSON object
  */
-router.put('/:run_id', jsonParser, (req, res) => {
+router.put('/:run_id', cors(), jsonParser, (req, res) => {
     Run.findOne({
         where: {
             run_id : req.params.run_id
@@ -87,14 +88,14 @@ router.put('/:run_id', jsonParser, (req, res) => {
 });
 
 //Get all runs
-router.get('/', (req, res) => {
+router.get('/', cors(), (req, res) => {
    Run.findAll().then(runs => {
        return res.status(200).json(runs)
    })
 });
 
 //Get all runs for user
-router.get('/:username', (req, res) => {
+router.get('/:username', cors(), (req, res) => {
     Run.findAll({
         where: {
             user: req.params.username
@@ -116,7 +117,7 @@ router.get('/:username', (req, res) => {
 });
 
 //Get run by run_id
-router.get('/:run_id', (req, res) => {
+router.get('/:run_id', cors(), (req, res) => {
     Run.findOne({
         where: {
             run_id : req.params.run_id
@@ -133,7 +134,7 @@ router.get('/:run_id', (req, res) => {
 });
 
 // Delete a run (Requires authorization from a system admin or the run owner)
-router.delete('/:run_id', (req, res) => {
+router.delete('/:run_id', cors(), (req, res) => {
     let snippedAuth = req.get('Authorization').replace("Bearer ", "");
     let decodedAuth = jwt.verify(snippedAuth, config.secretKey);
     let callerUsername = decodedAuth.username;

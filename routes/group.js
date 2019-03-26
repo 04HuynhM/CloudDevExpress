@@ -7,6 +7,7 @@ const config = require('../config/main');
 const Group = require('../models/group');
 const jsonParser = bodyParser.json();
 const sequelize = require('sequelize');
+const cors = require('cors');
 
 //Create a group
 /*
@@ -16,7 +17,7 @@ Takes JSON body of:
 
     Returns status 200
  */
-router.post('/', jsonParser, (req, res) => {
+router.post('/', cors(), jsonParser, (req, res) => {
     const data = req.body;
     let groupName = data.groupName || '';
     if (!data.username) {
@@ -102,7 +103,7 @@ Takes JSON body of:
 
     Returns status 200
  */
-router.put('/:group_id/invite', jsonParser, (req, res) => {
+router.put('/:group_id/invite', cors(), jsonParser, (req, res) => {
     let data = req.body;
     let snippedAuth = req.get('Authorization').replace("Bearer ", "");
     let decodedAuth = jwt.verify(snippedAuth, config.secretKey);
@@ -175,7 +176,7 @@ Takes JSON body of:
 
     Returns status 200
  */
-router.put('/:group_id/accept', jsonParser, (req, res) => {
+router.put('/:group_id/accept', cors(), jsonParser, (req, res) => {
     let data = req.body;
     Group.findOne({
         where: {
@@ -285,7 +286,7 @@ Takes JSON body of:
 
     Returns status 200
  */
-router.put('/:group_id/name', jsonParser, (req, res) => {
+router.put('/:group_id/name', cors(), jsonParser, (req, res) => {
     Group.findOne({
         where: {
             group_id : req.params.group_id
@@ -318,14 +319,14 @@ router.put('/:group_id/name', jsonParser, (req, res) => {
 });
 
 //Get all groups
-router.get('/', (req, res) => {
+router.get('/', cors(), (req, res) => {
     Group.findAll().then(groups => {
         return res.status(200).json(groups)
     })
 });
 
 //Get all groups of which username is a member
-router.get('/user/:username', (req, res) => {
+router.get('/user/:username', cors(), (req, res) => {
     Group.findAll({
         where: sequelize.or(
             { admin: req.params.username },
@@ -348,7 +349,7 @@ router.get('/user/:username', (req, res) => {
 });
 
 //Get group by group_id
-router.get('/:group_id', (req, res) => {
+router.get('/:group_id', cors(), (req, res) => {
     if (!Number.isInteger(req.params.group_id)) {
         return res.status(400).json({
             message: "Group ID must be an integer."
@@ -370,7 +371,7 @@ router.get('/:group_id', (req, res) => {
 });
 
 //Get all members of a group
-router.get('/:group_id/members', (req, res) => {
+router.get('/:group_id/members', cors(), (req, res) => {
     Group.findOne({
         where: {
             group_id : req.params.group_id
@@ -410,7 +411,7 @@ router.get('/:group_id/members', (req, res) => {
 });
 
 //Delete a group member
-router.delete('/:group_id/:username', jsonParser, (req, res) => {
+router.delete('/:group_id/:username', cors(), jsonParser, (req, res) => {
     let snippedAuth = req.get('Authorization').replace("Bearer ", "");
     let decodedAuth = jwt.verify(snippedAuth, config.secretKey);
     let callerUsername = decodedAuth.username;
@@ -462,7 +463,7 @@ router.delete('/:group_id/:username', jsonParser, (req, res) => {
 });
 
 //Delete a group
-router.delete('/:group_id', (req, res) => {
+router.delete('/:group_id', cors(), (req, res) => {
     let snippedAuth = req.get('Authorization').replace("Bearer ", "");
     let decodedAuth = jwt.verify(snippedAuth, config.secretKey);
     let callerUsername = decodedAuth.username;
