@@ -9,9 +9,10 @@ const config = require('../config/main');
 const jsonParser = bodyParser.json();
 const upload = require('../config/cloudStorage');
 const singleUpload = upload.single('image');
+const cors = require('cors');
 
 // Get all users
-router.get('/', (req, res) => {
+router.get('/', cors(), (req, res) => {
     User.findAll({
         attributes: [
             'username',
@@ -33,7 +34,7 @@ router.get('/', (req, res) => {
 });
 
 // Get single user
-router.get('/:id', (req, res) => {
+router.get('/:id', cors(), (req, res) => {
     User.findOne({
         where: {username: req.params.id},
         attributes: ['username',
@@ -69,7 +70,7 @@ router.get('/:id', (req, res) => {
      success: boolean
      token: string
  */
-router.post('/login', jsonParser, (req, res) => {
+router.post('/login', cors(), jsonParser, (req, res) => {
     User.findOne( {
        where: {
            $or: [
@@ -125,7 +126,7 @@ router.post('/login', jsonParser, (req, res) => {
    ========================
    Returns User json object
  */
-router.post('/', jsonParser, (req, res) => {
+router.post('/', cors(), jsonParser, (req, res) => {
     const data = req.body;
 
     if (!data.username ||
@@ -199,7 +200,7 @@ router.post('/', jsonParser, (req, res) => {
     ============
     Returns: User json object
  */
-router.put('/:id', jsonParser, passport.authenticate('jwt', { session: false }), (req, res) => {
+router.put('/:id', cors(), jsonParser, passport.authenticate('jwt', { session: false }), (req, res) => {
     let data = req.body;
     if (!data.updatedType ||
         !data.newValue) {
@@ -235,7 +236,7 @@ router.put('/:id', jsonParser, passport.authenticate('jwt', { session: false }),
 });
 
 // Upload profile picture
-router.post('/:id/image-upload', passport.authenticate('jwt', { session: false }), (req, res) => {
+router.post('/:id/image-upload', cors(), passport.authenticate('jwt', { session: false }), (req, res) => {
     singleUpload(req, res, (err => {
         if (err) {
             return res.status(422).json({
@@ -264,7 +265,7 @@ router.post('/:id/image-upload', passport.authenticate('jwt', { session: false }
 //     username : String
 //
 // REQUIRES AUTHORIZATION
-router.delete('/:id', jsonParser, passport.authenticate('jwt', { session : false }), (req, res) => {
+router.delete('/:id', cors(), jsonParser, passport.authenticate('jwt', { session : false }), (req, res) => {
     let snippedAuth = req.get('Authorization').replace("Bearer ", "");
     let decodedAuth = jwt.verify(snippedAuth, config.secretKey);
     let isAdmin = decodedAuth.isAdmin;
