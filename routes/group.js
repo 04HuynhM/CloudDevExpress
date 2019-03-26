@@ -327,10 +327,10 @@ router.get('/', (req, res) => {
 //Get all groups of which username is a member
 router.get('/user/:username', (req, res) => {
     Group.findAll({
-        where: {
-            admin: req.params.username,
-            members : { $contains : [req.params.username] }
-        }
+        where: sequelize.or(
+            { admin: req.params.username },
+            { members : { $contains : [req.params.username] }
+        })
     }).then(result => {
         if(result.length !== 0) {
             return res.status(200).json(result)
