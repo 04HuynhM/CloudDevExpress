@@ -176,8 +176,16 @@ Takes JSON body of:
 
     Returns status 200
  */
-router.put('/:group_id/accept', cors(), jsonParser, (req, res) => {
+router.put('/:group_id/invite/:acceptOrDecline', cors(), jsonParser, (req, res) => {
     let data = req.body;
+    let acceptOrDecline = req.params.acceptOrDecline;
+
+    if (acceptOrDecline !== "accept" && acceptOrDecline !== "decline") {
+        return res.status(400).json({
+            message: 'Last url parameter must be "accept" or "decline"'
+        })
+    }
+
     Group.findOne({
         where: {
             group_id: req.params.group_id
@@ -210,13 +218,13 @@ router.put('/:group_id/accept', cors(), jsonParser, (req, res) => {
                 })
             }
             let currentMembers = group.members;
-            if (currentMembers === []) {
+            if (currentMembers === [] && acceptOrDecline == "accept") {
                 currentMembers = [currentMembers.push(user.username)];
             } else if (currentMembers.includes(user.username)) {
                 return res.status(400).json({
                     message: 'User is already a member of this group.'
                 })
-            } else {
+            } else if (acceptOrDecline == "accept") {
                 currentMembers.push(user.username);
             }
             let values = {members: currentMembers};
@@ -231,19 +239,32 @@ router.put('/:group_id/accept', cors(), jsonParser, (req, res) => {
                             userInvitations.splice(i, 1)
                         }
                     }
-                    let joinedGroups = user.joinedGroups;
-                    joinedGroups.push(group.group_id);
+                    let values = {};
 
-                    let values = {
-                        groupInvitations: userInvitations,
-                        joinedGroups : joinedGroups
-                    };
+                    if (acceptOrDecline == "accept") {
+                        let joinedGroups = user.joinedGroups;
+                        joinedGroups.push(group.group_id);
+
+                        values = {
+                            groupInvitations: userInvitations,
+                            joinedGroups : joinedGroups
+                        };
+                    } else {
+                        values = {
+                            groupInvitations: userInvitations
+                        }
+                    }
+
                     let selector = {where: {username: user.username}};
                     User.update(values, selector)
                     .then(updatedUser => {
-                        if (updatedUser == 1) {
+                        if (updatedUser == 1 && acceptOrDecline == "accept") {
                             res.status(200).json({
                                 message: 'Accepted invitation successfully'
+                            })
+                        } else if (updatedUser == 1 && acceptOrDecline == "decline") {
+                            res.status(200).json({
+                                message: 'Declined invitation successfully'
                             })
                         } else {
                             return res.status(500).json({
@@ -367,6 +388,36 @@ router.get('/:group_id', cors(), (req, res) => {
                 message: 'Could not find group'
             })
         }
+    })
+});
+
+router.get('/invites/:username', (req, res) => {
+    User.findOne({
+        where : { username: req.params.username }
+    }).then(user => {
+        let invitations = user.groupInvitations;
+
+        Group.findAll({
+            where: {
+                group_id : {
+                    $in : invitations
+                }
+            },
+            attributes: [
+                'group_id',
+                'groupName',
+                'members',
+                'admin'
+            ]
+        }).then(groups => {
+            if (groups) {
+                return res.status(200).json(groups)
+            } else {
+                return res.status(404).json({
+                    message: 'No invitations found'
+                })
+            }
+        })
     })
 });
 
