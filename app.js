@@ -13,7 +13,7 @@ const userRouter = require('./routes/user');
 require('./config/passport')(passport);
 app.use(passport.initialize());
 app.use(morgan('dev'));
-app.use(cors);
+app.use(cors());
 
 app.use('/group', passport.authenticate('jwt', { session: false }), groupRouter);
 app.use('/run', passport.authenticate('jwt', { session: false }), runRouter);
