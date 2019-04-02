@@ -3,6 +3,8 @@ const bodyParser = require('body-parser');
 const router = express.Router();
 const passport = require('passport');
 const User = require('../models/user');
+const Run = require('../models/run');
+const Group = require('../models/group');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const config = require('../config/main');
@@ -269,36 +271,67 @@ router.delete('/:id', cors(), jsonParser, passport.authenticate('jwt', { session
     let snippedAuth = req.get('Authorization').replace("Bearer ", "");
     let decodedAuth = jwt.verify(snippedAuth, config.secretKey);
     let isAdmin = decodedAuth.isAdmin;
-
-    if (isAdmin) {
+    let isUser = decodedAuth.username == req.params.username;
+    if (isAdmin || isUser) {
         User.findOne({
             where : {
                 username: req.params.id
             }
-        }).then(user => {
-            User.destroy({
-                where: {
-                    username : user.username
-                }
-            }).then(() => {
-                return res.status(200).json({
-                    message: 'User deleted'
+        }).then(userToBeDeleted => {
+            if (userToBeDeleted) {
+                console.log('Deleting runs for user.');
+                Run.destroy({
+                    where: {
+                        user: userToBeDeleted.username
+                    }
+                }).then(() => {
+                    console.log('Deleting groups for user');
+                    Group.destroy({
+                        where: {
+                            admin: userToBeDeleted.username
+                        }
+                    }).then(() => {
+                        console.log('Deleting user');
+                        User.destroy({
+                            where: {
+                                username : userToBeDeleted.username
+                            }
+                        }).then(() => {
+                            return res.status(200).json({
+                                message: 'User and their runs and groups have been deleted'
+                            })
+                        }).catch(err => {
+                            return res.status(500).json({
+                                message: 'User could not be deleted.',
+                                error: err
+                            })
+                        })
+                    }).catch(err => {
+                        return res.status(500).json({
+                            message: 'Groups could not be deleted',
+                            error: err
+                        })
+                    })
+                }).catch(err => {
+                    return res.status(500).json({
+                      message: 'Runs could not be deleted',
+                      error: err
+                    })
                 })
-            }).catch(err => {
-                return res.status(500).json({
-                    message: 'User could not be deleted.',
-                    error: err
+            } else {
+                return res.status(404).json({
+                    message: 'User could not be found',
                 })
-            })
+            }
         }).catch(err => {
-            return res.status(404).json({
-                message: 'User could not be found',
+            return res.status(500).json({
+                message: "Something went wrong",
                 error: err
             })
         })
     } else {
-        return res.status(403).json({
-            message: 'Unauthorized. User is not an admin.'
+        return res.status(401).json({
+            message: 'Unauthorized. You cannot delete another user unless you are a system admin.'
         })
     }
 });
@@ -308,6 +341,10 @@ function hashPassword(password) {
     let hash = bcrypt.hashSync(password, salt);
     console.log("HASH =====" + hash);
     return hash
+}
+
+function deleteUser(user) {
+
 }
 
 module.exports = router;
