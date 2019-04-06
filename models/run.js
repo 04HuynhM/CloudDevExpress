@@ -1,24 +1,25 @@
 const Sequelize = require('sequelize');
 const db = require('../config/database');
 
-const Run = db.define('run', {
+const Run = db.define('Run', {
     run_id: {
         type: Sequelize.INTEGER,
+        primaryKey: true,
         unique: true,
+        autoIncrement: true
     },
     locations: {
         type: Sequelize.JSONB,
     },
     startTime: {
         type: Sequelize.DATE,
+    },
+    timeInSeconds: {
+        type: Sequelize.INTEGER,
     }
 }, {
     freezeTableName: true,
     timestamps: false,
 });
-
-Run.associate = models => {
-    Run.belongsTo(models.User)
-};
 
 module.exports = Run;

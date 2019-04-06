@@ -29,17 +29,18 @@ const User = db.define('User', {
     dailyStepGoal: {
         type: Sequelize.INTEGER,
     },
-    groups: {
-        type: Sequelize.JSONB,
+    joinedGroups: {
+        type: Sequelize.ARRAY(Sequelize.INTEGER),
+    },
+    groupInvitations: {
+        type: Sequelize.ARRAY(Sequelize.INTEGER),
+    },
+    profilePicture: {
+        type: Sequelize.STRING,
     }
 }, {
     freezeTableName: true,
     timestamps: false,
 });
-
-// User.associate = models => {
-//     User.hasMany(models.Group, {as: 'Groups'});
-//     User.hasMany(models.Run, {as: 'Runs'});
-// };
 
 module.exports = User;
